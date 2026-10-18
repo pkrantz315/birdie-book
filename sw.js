@@ -1,5 +1,5 @@
 /* Service Worker: hält die App offline verfügbar (Cache zuerst, im Hintergrund aktualisieren). */
-const CACHE = 'birdie-book-v1';
+const CACHE = 'birdie-book-v2';
 const ASSETS = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
