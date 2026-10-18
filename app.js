@@ -1,6 +1,7 @@
 /* Birdie Book – Notizen und Fotos pro Golfplatz, Tee und Loch. Alles lokal in IndexedDB. */
 'use strict';
 
+const APP_VERSION = '2.1';
 const HOLES = 18;
 const TEES = [
   { id: 'schwarz', name: 'Schwarz', color: '#1b1b1b' },
@@ -274,6 +275,7 @@ async function showHome() {
           <button class="btn" data-act="import">${ICON.up} Importieren…</button>
         </div>
         <p class="muted small" id="storageInfo"></p>
+        <p class="muted small">Birdie Book · Version ${APP_VERSION}</p>
       </section>
     </main>`;
   window.scrollTo(0, 0);
@@ -1273,6 +1275,17 @@ window.addEventListener('resize', () => {
   if (D) drawLayout();
 });
 
+/* Fehler sichtbar machen statt stiller Absturz */
+let errorShown = false;
+function showError(err) {
+  if (errorShown) return;
+  errorShown = true;
+  const msg = (err && (err.message || err.reason && err.reason.message)) || String(err);
+  infoBox('Da ist etwas schiefgelaufen', `${msg} (Version ${APP_VERSION})`).then(() => { errorShown = false; });
+}
+window.addEventListener('error', e => showError(e.error || e.message));
+window.addEventListener('unhandledrejection', e => showError(e.reason));
+
 /* ---------- Start ---------- */
 (async function init() {
   try {
@@ -1284,7 +1297,15 @@ window.addEventListener('resize', () => {
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // Nach einem Update übernimmt der neue Service Worker → einmal neu laden, damit sofort der neue Code läuft
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloading || state.dirty || V || D) return;
+      reloading = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(() => {});
   }
   await showHome();
   await restoreDraft();
