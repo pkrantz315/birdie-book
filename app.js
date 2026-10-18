@@ -37,8 +37,9 @@ const DB = {
     });
   },
   ro(name) { return this.db.transaction(name, 'readonly').objectStore(name); },
-  all() { return reqP(this.ro('courses').getAll()); },
-  get(id) { return reqP(this.ro('courses').get(id)); },
+  // Beim Lesen immer normalisieren – so funktionieren auch Plätze aus älteren Versionen (z. B. ohne Fotos)
+  async all() { return (await reqP(this.ro('courses').getAll())).map(normCourse); },
+  async get(id) { const c = await reqP(this.ro('courses').get(id)); return c ? normCourse(c) : c; },
   put(course) { course.updated = new Date().toISOString(); return txP('courses', s => s.put(course)); },
   del(id) { return txP('courses', s => s.delete(id)); },
   putMany(list) { return txP('courses', s => list.forEach(c => s.put(c))); },
